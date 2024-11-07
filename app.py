@@ -3,10 +3,7 @@ import torch
 import torchvision
 from PIL import Image
 from roboflow import Roboflow
-import requests
-from io import BytesIO
-from pathlib import Path
-from google.colab import drive
+import os
 
 # Function to load Faster R-CNN model
 def load_fasterrcnn_model(model_path):
@@ -52,13 +49,8 @@ def perform_inference(model, image, model_type):
             prediction = model(image_tensor)
         return prediction
 
-# Function to mount Google Drive
-def mount_drive():
-    drive.mount('/content/drive')
-    st.success("Google Drive mounted successfully!")
-
 # Streamlit app layout
-st.title('Soft Des Three Model Demonstration')
+st.title('Object Detection with Multiple Models')
 
 # Model selection dropdown
 model_choice = st.selectbox('Select Model', ['Select a model', 'Faster R-CNN', 'YOLOv5', 'RTMDet'])
@@ -69,20 +61,22 @@ uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png
 # Load model button
 if st.button('Load Model'):
     if model_choice == 'Faster R-CNN':
-        mount_drive()
-        model_path = st.text_input("/content/drive/MyDrive/Copy of model_final.pth")
-        if model_path:
+        model_path = st.text_input("Enter the path to the Faster R-CNN model (.pth):")
+        if model_path and os.path.exists(model_path):
             model = load_fasterrcnn_model(model_path)
             st.success("Faster R-CNN model loaded successfully.")
+        else:
+            st.error("Invalid model path.")
     elif model_choice == 'YOLOv5':
         model = load_yolov5_model()
         st.success("YOLOv5 model loaded successfully.")
     elif model_choice == 'RTMDet':
-        mount_drive()
-        model_path = st.text_input("/content/drive/MyDrive/epoch_2.pth")
-        if model_path:
+        model_path = st.text_input("Enter the path to the RTMDet model:")
+        if model_path and os.path.exists(model_path):
             model = load_rtmdet_model(model_path)
             st.success("RTMDet model loaded successfully.")
+        else:
+            st.error("Invalid model path.")
     else:
         st.error('Please select a valid model first.')
 
