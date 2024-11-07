@@ -2,9 +2,11 @@ import streamlit as st
 import torch
 import torchvision
 from PIL import Image
+from roboflow import Roboflow
 import requests
 from io import BytesIO
 from pathlib import Path
+from google.colab import drive
 
 # Function to load Faster R-CNN model
 def load_fasterrcnn_model(model_path):
@@ -14,10 +16,13 @@ def load_fasterrcnn_model(model_path):
     return model
 
 # Function to load YOLOv5 model via Roboflow API
-def load_yolov5_model(api_key, project_name, version):
-    from roboflow import Roboflow
-    rf = Roboflow(api_key=api_key)
-    model = rf.workspace().project(project_name).version(version).model
+def load_yolov5_model():
+    # Directly using the given API key and project details
+    rf = Roboflow(api_key="RFaNdGHxTtn46bvxSFvM")
+    project = rf.workspace("yolo-wood").project("project-design-ekhku")
+    version = project.version(2)
+    dataset = version.download("yolov5")
+    model = dataset.model
     return model
 
 # Function to load RTMDet model
@@ -47,8 +52,13 @@ def perform_inference(model, image, model_type):
             prediction = model(image_tensor)
         return prediction
 
+# Function to mount Google Drive
+def mount_drive():
+    drive.mount('/content/drive')
+    st.success("Google Drive mounted successfully!")
+
 # Streamlit app layout
-st.title('Soft Des 3 Model designs')
+st.title('Soft Des Three Model Demonstration')
 
 # Model selection dropdown
 model_choice = st.selectbox('Select Model', ['Select a model', 'Faster R-CNN', 'YOLOv5', 'RTMDet'])
@@ -59,19 +69,17 @@ uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png
 # Load model button
 if st.button('Load Model'):
     if model_choice == 'Faster R-CNN':
-        model_path = st.text_input("Enter the path to the Faster R-CNN model (.pth):")
+        mount_drive()
+        model_path = st.text_input("/content/drive/MyDrive/Copy of model_final.pth")
         if model_path:
             model = load_fasterrcnn_model(model_path)
             st.success("Faster R-CNN model loaded successfully.")
     elif model_choice == 'YOLOv5':
-        api_key = st.text_input("Enter your Roboflow API key:")
-        project_name = st.text_input("Enter your project name:")
-        version = st.number_input("Enter the version number of the YOLOv5 model:", min_value=1)
-        if api_key and project_name and version:
-            model = load_yolov5_model(api_key, project_name, version)
-            st.success("YOLOv5 model loaded successfully.")
+        model = load_yolov5_model()
+        st.success("YOLOv5 model loaded successfully.")
     elif model_choice == 'RTMDet':
-        model_path = st.text_input("Enter the path to the RTMDet model:")
+        mount_drive()
+        model_path = st.text_input("/content/drive/MyDrive/epoch_2.pth")
         if model_path:
             model = load_rtmdet_model(model_path)
             st.success("RTMDet model loaded successfully.")
@@ -100,4 +108,3 @@ if uploaded_file is not None:
                 st.write(prediction)
         else:
             st.error('Please load a model first.')
-
