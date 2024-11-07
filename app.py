@@ -1,80 +1,40 @@
 import streamlit as st
-import torch
-import torchvision
+from roboflow import Roboflow
 from PIL import Image
-import io
+import torch
 
-# Function to load Faster R-CNN model
-def load_fasterrcnn_model(model_file):
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
-    model.load_state_dict(torch.load(model_file))
-    model.eval()
-    return model
+# Initialize Roboflow with your API key
+rf = Roboflow(api_key="RFaNdGHxTtn46bvxSFvM")
 
-# Function to load RTMDet model
-def load_rtmdet_model(model_file):
-    model = torch.load(model_file)
-    model.eval()
-    return model
+# Access the project and version from your workspace
+project = rf.workspace("yolo-wood").project("project-design-ekhku")
+version = project.version(2)
 
-# Function for performing inference on the image
-def perform_inference(model, image, model_type):
-    if model_type == 'Faster R-CNN':
-        transform = torchvision.transforms.Compose([
-            torchvision.transforms.ToTensor()
-        ])
-        image_tensor = transform(image).unsqueeze(0)
-        with torch.no_grad():
-            prediction = model(image_tensor)
-        return prediction
-    elif model_type == 'RTMDet':
-        image_tensor = torch.tensor(image).unsqueeze(0)
-        with torch.no_grad():
-            prediction = model(image_tensor)
-        return prediction
+# Download the YOLOv5 model from Roboflow (with YOLOv5 format)
+dataset = version.download("yolov5")
 
-# Streamlit app layout
-st.title('Object Detection with Multiple Models')
+# Load the YOLOv5 model directly from the dataset (Roboflow API handles the model)
+model = torch.hub.load('ultralytics/yolov5', 'custom', path=dataset.location + '/yolov5.pt')
 
-# Model selection dropdown
-model_choice = st.selectbox('Select Model', ['Select a model', 'Faster R-CNN', 'RTMDet'])
+# Streamlit UI
+st.title('YOLOv5 Object Detection')
 
-# Upload an image
-uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+# Upload image from the UI
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-# Upload model files
-fasterrcnn_model_file = st.file_uploader("Upload Faster R-CNN model", type=["pth"])
-rtmdet_model_file = st.file_uploader("Upload RTMDet model", type=["pth"])
-
-# Initialize the model variable
-model = None
-
-# Load model button
-if st.button('Load Model'):
-    if model_choice == 'Faster R-CNN' and fasterrcnn_model_file is not None:
-        model = load_fasterrcnn_model(fasterrcnn_model_file)
-        st.success("Faster R-CNN model loaded successfully.")
-    elif model_choice == 'RTMDet' and rtmdet_model_file is not None:
-        model = load_rtmdet_model(rtmdet_model_file)
-        st.success("RTMDet model loaded successfully.")
-    else:
-        st.error('Please select a valid model and upload the model file.')
-
-# Show uploaded image
-if uploaded_image is not None:
-    image = Image.open(uploaded_image)
-    st.image(image, caption='Uploaded Image', use_column_width=True)
-
-    # Run inference if the model is loaded
-    if model is not None:
-        if st.button('Run Inference'):
-            if model_choice == 'Faster R-CNN':
-                prediction = perform_inference(model, image, model_choice)
-                st.write("Prediction Results:")
-                st.write(prediction)
-            elif model_choice == 'RTMDet':
-                prediction = perform_inference(model, image, model_choice)
-                st.write("RTMDet Prediction Results:")
-                st.write(prediction)
-    else:
-        st.error('Please load a model first.')
+if uploaded_file is not None:
+    # Open the image using PIL
+    img = Image.open(uploaded_file)
+    
+    # Display the uploaded image
+    st.image(img, caption='Uploaded Image', use_column_width=True)
+    
+    # Run inference on the uploaded image
+    results = model(img)  # The model makes a prediction on the image
+    
+    # Display detection results
+    st.subheader("Detection Results")
+    results.show()  # This will show the image with bounding boxes
+    
+    # Show the predictions in a tabular format (labels and confidence)
+    st.write("Predictions:", results.pandas().xywh)
