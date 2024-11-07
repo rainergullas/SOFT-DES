@@ -58,6 +58,9 @@ model_choice = st.selectbox('Select Model', ['Select a model', 'Faster R-CNN', '
 # Upload an image
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
+# Initialize the model variable
+model = None
+
 # Load model button
 if st.button('Load Model'):
     if model_choice == 'Faster R-CNN':
@@ -85,9 +88,9 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file)
     st.image(image, caption='Uploaded Image', use_column_width=True)
 
-    # Run inference
-    if st.button('Run Inference'):
-        if model_choice != 'Select a model':
+    # Run inference if the model is loaded
+    if model is not None:
+        if st.button('Run Inference'):
             if model_choice == 'Faster R-CNN':
                 prediction = perform_inference(model, image, model_choice)
                 st.write("Prediction Results:")
@@ -100,5 +103,5 @@ if uploaded_file is not None:
                 prediction = perform_inference(model, image, model_choice)
                 st.write("RTMDet Prediction Results:")
                 st.write(prediction)
-        else:
-            st.error('Please load a model first.')
+    else:
+        st.error('Please load a model first.')
