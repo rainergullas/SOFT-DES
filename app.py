@@ -18,8 +18,7 @@ def load_yolov5_model():
     rf = Roboflow(api_key="RFaNdGHxTtn46bvxSFvM")
     project = rf.workspace("yolo-wood").project("project-design-ekhku")
     version = project.version(2)
-    dataset = version.download("yolov5")
-    model = dataset.model
+    model = version.model
     return model
 
 # Function to load RTMDet model
